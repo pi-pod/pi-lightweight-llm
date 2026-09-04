@@ -1,5 +1,5 @@
-import { ToolExecutionComponent } from "@earendil-works/pi-coding-agent";
-import { Text } from "@earendil-works/pi-tui";
+import { ToolExecutionComponent, type Theme } from "@earendil-works/pi-coding-agent";
+import { Box, Text } from "@earendil-works/pi-tui";
 import { cleanSummary, type ToolSnapshot, type TranscriptMode } from "./summary.ts";
 
 // Compatibility boundary for pi 0.84.4. Pi exposes the component, but not a
@@ -15,6 +15,7 @@ export function installTranscript(
   mode: () => TranscriptMode,
   summary: (tool: ToolSnapshot) => string | undefined,
   pendingLabel: () => string,
+  getTheme: () => Theme,
 ) {
   const prototype = ToolExecutionComponent.prototype;
   const tagged = prototype as unknown as Record<symbol, unknown>;
@@ -33,8 +34,15 @@ export function installTranscript(
         typeof row.toolCallId !== "string" || typeof row.toolName !== "string" ||
         !Array.isArray(row.result?.content)) return original.call(this, width);
     const text = summary(row) ?? pendingLabel();
-    const label = `${row.result.isError ? "ERROR · " : ""}${row.toolName} · LLM summary`;
-    return ["", ...new Text(`${cleanSummary(label)}\n${text}`, 1, 0).render(width)];
+    const theme = getTheme(); // Read on every render so theme changes apply immediately.
+    const label = `${row.result.isError ? "ERROR · " : ""}${row.toolName}`;
+    const title = theme.fg("toolTitle", theme.bold(cleanSummary(label)))
+      + theme.fg("muted", " · LLM summary");
+    // Match pi's standard tool shell, including full-width background and padding.
+    const box = new Box(1, 1, line => theme.bg(row.result.isError ? "toolErrorBg" : "toolSuccessBg", line));
+    box.addChild(new Text(title, 0, 0));
+    box.addChild(new Text(text.split("\n").map(line => theme.fg("toolOutput", line)).join("\n"), 0, 0));
+    return ["", ...box.render(width)];
   };
   tagged[owner] = render;
   prototype.render = render;

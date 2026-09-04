@@ -65,7 +65,8 @@ The old `lightweightTasks` settings section is still read when `lightweightLlm` 
 While active, **Ctrl+O** cycles **compact → verbose → LLM summary → compact**.
 
 - Compact and verbose preserve native renderers, including third-party tool renderers.
-- Summary replaces completed tool rows with the tool name, error indicator, and an LLM summary of at most **999 characters**. Running tools retain native progress rendering.
+- Summary replaces completed tool rows with the tool name, error indicator, and an LLM summary of at most **999 characters**, using native tool theme colors and shell padding. Theme changes apply immediately. Running tools retain native progress rendering.
+- Summaries aim for one terse line, ideally under 160 characters, with no preamble or Markdown. The 999-character limit is a ceiling, not a target. Existing cached summaries are not regenerated when the prompt changes.
 - User/assistant messages, thinking blocks, and `!`/`!!` shell commands are unchanged.
 
 Commands:

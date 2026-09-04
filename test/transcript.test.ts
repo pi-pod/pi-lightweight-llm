@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { initTheme, ToolExecutionComponent } from "@earendil-works/pi-coding-agent";
-import type { TUI } from "@earendil-works/pi-tui";
+import { visibleWidth, type TUI } from "@earendil-works/pi-tui";
+import { theme } from "../node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/theme/theme.js";
 import { installTranscript } from "../src/capabilities/tool-summary/transcript.ts";
 import type { TranscriptMode } from "../src/capabilities/tool-summary/summary.ts";
 
@@ -13,9 +14,9 @@ test("real pi rows retain native modes, replace completed built-in/custom rows, 
   const native = ToolExecutionComponent.prototype.render;
   let mode: TranscriptMode = "compact";
   const result = { content: [{ type: "text" as const, text: "original result" }], isError: false };
-  const adapter = installTranscript(() => mode, () => "A short factual summary.", () => "pending");
+  const adapter = installTranscript(() => mode, () => "A short factual summary.", () => "pending", () => theme);
   try {
-    assert.throws(() => installTranscript(() => mode, () => "", () => ""), /already installed/);
+    assert.throws(() => installTranscript(() => mode, () => "", () => "", () => theme), /already installed/);
     for (const name of ["bash", "third_party_tool"]) {
       const row = new ToolExecutionComponent(name, "id", { command: "echo hi" }, {}, undefined, ui, process.cwd());
       row.updateResult(result);
@@ -35,4 +36,41 @@ test("real pi rows retain native modes, replace completed built-in/custom rows, 
     assert.ok(renders > 0);
   } finally { adapter.dispose(); }
   assert.equal(ToolExecutionComponent.prototype.render, native);
+});
+
+test("summary shells match native theme colors and padding, including live theme changes and errors", () => {
+  const ui = { requestRender: () => {} } as unknown as TUI;
+  const native = ToolExecutionComponent.prototype.render;
+  let summary: string | undefined = "Changed config.ts.";
+  const adapter = installTranscript(() => "summary", () => summary, () => "Summarizing…", () => theme);
+  try {
+    const row = new ToolExecutionComponent("bash", "id", { command: "echo hi" }, {}, undefined, ui, process.cwd());
+    const themedRenders: string[] = [];
+    for (const name of ["dark", "light"]) {
+      initTheme(name, false);
+      for (const isError of [false, true]) {
+        row.updateResult({ content: [{ type: "text", text: "native output" }], isError });
+        for (const text of ["Changed config.ts.", undefined]) {
+          summary = text;
+          const lines = row.render(60);
+          const rendered = lines.join("\n");
+          const bg = theme.getBgAnsi(isError ? "toolErrorBg" : "toolSuccessBg");
+          assert.ok(rendered.includes(bg));
+          assert.ok(rendered.includes(theme.getFgAnsi("toolTitle")));
+          assert.ok(rendered.includes(theme.getFgAnsi("toolOutput")));
+          assert.ok(rendered.includes(text ?? "Summarizing…"));
+          assert.equal(rendered.includes("ERROR"), isError);
+          assert.equal(lines[0], ""); // Inter-row spacer, outside the shell.
+          assert.equal(lines[1], native.call(row, 60)[1]); // Native top padding/background.
+          assert.equal(lines.at(-1), lines[1]); // Symmetric bottom padding.
+          assert.ok(lines.slice(1).every(line => visibleWidth(line) === 60));
+          if (!isError && text) themedRenders.push(rendered);
+        }
+      }
+    }
+    assert.notEqual(themedRenders[0], themedRenders[1]);
+  } finally {
+    adapter.dispose();
+    initTheme("dark", false);
+  }
 });

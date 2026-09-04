@@ -147,6 +147,7 @@ export function createToolSummaryCapability(
             );
           },
           () => "Summarizing…",
+          () => ctx.ui.theme,
         );
       } catch (error) {
         warn(ctx, String(error));
