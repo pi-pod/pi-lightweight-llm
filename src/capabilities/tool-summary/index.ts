@@ -33,7 +33,6 @@ export function createToolSummaryCapability(
   let queue = new WorkQueue();
   const summaries = new Map<string, string>();
   const scheduled = new Set<string>();
-  const failures = new Set<string>();
   const args = new Map<string, unknown>();
   let warned = false;
 
@@ -76,7 +75,6 @@ export function createToolSummaryCapability(
         adapter?.refresh();
       },
       () => {
-        failures.add(key);
         warn(
           ctx,
           "Tool summary failed (model, authentication, or timeout). Original output is intact; use Ctrl+O for verbose, /tool-summaries to retry.",
@@ -123,7 +121,6 @@ export function createToolSummaryCapability(
     queue.stop();
     queue = new WorkQueue();
     scheduled.clear();
-    failures.clear();
     warned = false;
   }
   const capability: Capability = {
@@ -137,16 +134,7 @@ export function createToolSummaryCapability(
       try {
         adapter = installTranscript(
           () => mode,
-          (tool) => {
-            const key = summaryKey(tool);
-            return (
-              summaries.get(key) ??
-              (failures.has(key)
-                ? "Summary unavailable. Ctrl+O for original output."
-                : undefined)
-            );
-          },
-          () => "Summarizing…",
+          (tool) => summaries.get(summaryKey(tool)),
           () => ctx.ui.theme,
         );
       } catch (error) {

@@ -14,7 +14,6 @@ const owner = Symbol.for("pi-lightweight-llm.transcript-owner");
 export function installTranscript(
   mode: () => TranscriptMode,
   summary: (tool: ToolSnapshot) => string | undefined,
-  pendingLabel: () => string,
   getTheme: () => Theme,
 ) {
   const prototype = ToolExecutionComponent.prototype;
@@ -33,7 +32,9 @@ export function installTranscript(
     if (mode() !== "summary" || row.isPartial !== false ||
         typeof row.toolCallId !== "string" || typeof row.toolName !== "string" ||
         !Array.isArray(row.result?.content)) return original.call(this, width);
-    const text = summary(row) ?? pendingLabel();
+    const text = summary(row);
+    // Keep native output visible while background work is queued or running.
+    if (text === undefined) return original.call(this, width);
     const theme = getTheme(); // Read on every render so theme changes apply immediately.
     const label = `${row.result.isError ? "ERROR · " : ""}${row.toolName}`;
     const title = theme.fg("toolTitle", theme.bold(cleanSummary(label)))
