@@ -15,6 +15,7 @@ export function installTranscript(
   mode: () => TranscriptMode,
   summary: (tool: ToolSnapshot) => string | undefined,
   getTheme: () => Theme,
+  pending: (tool: ToolSnapshot) => boolean = () => false,
 ) {
   const prototype = ToolExecutionComponent.prototype;
   const tagged = prototype as unknown as Record<symbol, unknown>;
@@ -34,7 +35,12 @@ export function installTranscript(
         !Array.isArray(row.result?.content)) return original.call(this, width);
     const text = summary(row);
     // Keep native output visible while background work is queued or running.
-    if (text === undefined) return original.call(this, width);
+    if (text === undefined) {
+      const lines = original.call(this, width);
+      if (!pending(row)) return lines;
+      const indicator = new Text(getTheme().fg("muted", "LLM Summary Processing..."), 1, 0);
+      return [...lines, ...indicator.render(width)];
+    }
     const theme = getTheme(); // Read on every render so theme changes apply immediately.
     const label = `${row.result.isError ? "ERROR · " : ""}${row.toolName}`;
     const title = theme.fg("toolTitle", theme.bold(cleanSummary(label)))

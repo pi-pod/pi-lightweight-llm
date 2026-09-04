@@ -79,7 +79,7 @@ Pi reserves the native expand shortcut, so Ctrl+O is intercepted in the main edi
 
 ### Requests, persistence, and privacy
 
-When active, completed tool calls are summarized automatically in TUI sessions, **even when summary mode is not selected**. In summary mode, native tool output stays visible while summarization runs in the background, then is replaced by the completed summary. If summarization fails, native output remains visible. Resume/reload backfills missing summaries on the current branch. This incurs model requests and sends potentially sensitive tool arguments/output to the configured provider. Only enable it with an appropriate provider.
+When active, completed tool calls are summarized automatically in TUI sessions, **even when summary mode is not selected**. In summary mode, native tool output stays visible with a muted “LLM Summary Processing...” indicator while summarization runs in the background, then is replaced by the completed summary. If summarization fails, native output remains visible. Resume/reload backfills missing summaries on the current branch. This incurs model requests and sends potentially sensitive tool arguments/output to the configured provider. Only enable it with an appropriate provider.
 
 Requests run serially in the background, with a 60-second deadline and a 2048-token output budget. Arguments are excerpted to 6000 characters and output to 18000, retaining head and tail. Images are described by type only; image bytes, tool `details`, and the rest of the conversation are not sent. Summaries can omit important information: verbose mode remains the source of truth.
 

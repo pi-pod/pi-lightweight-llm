@@ -15,7 +15,8 @@ test("real pi rows retain native modes, replace completed built-in/custom rows, 
   let mode: TranscriptMode = "compact";
   const result = { content: [{ type: "text" as const, text: "original result" }], isError: false };
   let summary: string | undefined;
-  const adapter = installTranscript(() => mode, () => summary, () => theme);
+  let pending = true;
+  const adapter = installTranscript(() => mode, () => summary, () => theme, () => pending);
   try {
     assert.throws(() => installTranscript(() => mode, () => "", () => theme), /already installed/);
     for (const name of ["bash", "third_party_tool"]) {
@@ -28,6 +29,17 @@ test("real pi rows retain native modes, replace completed built-in/custom rows, 
       mode = "summary";
       row.setExpanded(false);
       summary = undefined;
+      pending = true;
+      for (const width of [20, 80]) {
+        const original = native.call(row, width);
+        const lines = row.render(width);
+        assert.deepEqual(lines.slice(0, original.length), original);
+        const indicator = lines.slice(original.length).join("\n");
+        assert.ok(indicator.includes(theme.getFgAnsi("muted")));
+        assert.ok(lines.every(line => visibleWidth(line) <= width));
+        if (width === 80) assert.ok(indicator.includes("LLM Summary Processing..."));
+      }
+      pending = false; // Failed/cancelled work must not leave a stale indicator.
       assert.deepEqual(row.render(80), native.call(row, 80));
       const previousRenders = renders;
       summary = "A short factual summary.";
@@ -35,6 +47,7 @@ test("real pi rows retain native modes, replace completed built-in/custom rows, 
       assert.ok(renders > previousRenders);
       assert.ok(row.render(80).join("\n").includes("A short factual summary."));
       assert.ok(!row.render(80).join("\n").includes("original result"));
+      assert.ok(!row.render(80).join("\n").includes("LLM Summary Processing..."));
       assert.equal(result.content[0].text, "original result");
       row.updateResult(result, true);
       assert.deepEqual(row.render(80), native.call(row, 80));

@@ -33,6 +33,7 @@ export function createToolSummaryCapability(
   let queue = new WorkQueue();
   const summaries = new Map<string, string>();
   const scheduled = new Set<string>();
+  const pending = new Set<string>();
   const args = new Map<string, unknown>();
   let warned = false;
 
@@ -50,6 +51,8 @@ export function createToolSummaryCapability(
     const key = summaryKey(tool);
     if (summaries.has(key) || scheduled.has(key)) return;
     scheduled.add(key);
+    pending.add(key);
+    adapter.refresh();
     const config = settings;
     const input = summaryInput(tool);
     queue.add(
@@ -72,9 +75,11 @@ export function createToolSummaryCapability(
           usage: response.usage,
         });
         summaries.set(key, text);
+        pending.delete(key);
         adapter?.refresh();
       },
       () => {
+        pending.delete(key);
         warn(
           ctx,
           "Tool summary failed (model, authentication, or timeout). Original output is intact; use Ctrl+O for verbose, /tool-summaries to retry.",
@@ -121,6 +126,7 @@ export function createToolSummaryCapability(
     queue.stop();
     queue = new WorkQueue();
     scheduled.clear();
+    pending.clear();
     warned = false;
   }
   const capability: Capability = {
@@ -136,6 +142,7 @@ export function createToolSummaryCapability(
           () => mode,
           (tool) => summaries.get(summaryKey(tool)),
           () => ctx.ui.theme,
+          (tool) => pending.has(summaryKey(tool)),
         );
       } catch (error) {
         warn(ctx, String(error));
@@ -201,6 +208,7 @@ export function createToolSummaryCapability(
     },
     stop(ctx) {
       queue.stop();
+      pending.clear();
       restoreEditor?.();
       restoreEditor = undefined;
       mode = "compact";
