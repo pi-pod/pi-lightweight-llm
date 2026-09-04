@@ -1,6 +1,6 @@
 {
   "name": "pi-lightweight-llm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Modular, individually configurable lightweight LLM capabilities for pi",
   "repository": { "type": "git", "url": "https://github.com/pi-pod/pi-lightweight-llm.git" },
