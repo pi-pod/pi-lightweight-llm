@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { initTheme, ToolExecutionComponent } from "@earendil-works/pi-coding-agent";
 import type { TUI } from "@earendil-works/pi-tui";
-import { installTranscript } from "../src/transcript.ts";
-import type { TranscriptMode } from "../src/summary.ts";
+import { installTranscript } from "../src/capabilities/tool-summary/transcript.ts";
+import type { TranscriptMode } from "../src/capabilities/tool-summary/summary.ts";
 
 initTheme("dark", false);
 

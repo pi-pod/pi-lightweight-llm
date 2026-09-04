@@ -1,10 +1,10 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { LightweightSettings } from "./settings.ts";
+import type { ModelSettings } from "./settings.ts";
 
 /** Shared entry point for this and future lightweight tasks; never switches the agent model. */
 export async function runLightweightTask(
   ctx: ExtensionContext,
-  settings: LightweightSettings,
+  settings: ModelSettings,
   task: { instructions: string; input: string },
   signal: AbortSignal,
 ) {

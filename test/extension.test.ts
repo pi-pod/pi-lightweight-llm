@@ -5,13 +5,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import extension from "../src/index.ts";
-import { summaryKey } from "../src/summary.ts";
+import { summaryKey } from "../src/capabilities/tool-summary/summary.ts";
 
 test("background integration: selected model, immutable results, persistence, cached restore, shutdown race", async () => {
   const dir = await mkdtemp(join(tmpdir(), "pi-lightweight-test-"));
   const oldDir = process.env.PI_CODING_AGENT_DIR;
   process.env.PI_CODING_AGENT_DIR = dir;
-  await writeFile(join(dir, "settings.json"), JSON.stringify({ lightweightTasks: { provider: "test", model: "small", thinkingLevel: "low" } }));
+  await writeFile(join(dir, "settings.json"), JSON.stringify({ lightweightLlm: { provider: "test", model: "small", thinkingLevel: "low" } }));
   const handlers = new Map<string, Function>();
   const entries: any[] = [];
   let resolve: (value: any) => void = () => {};

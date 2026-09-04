@@ -1,18 +1,29 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseSettings } from "../src/settings.ts";
-import { cleanSummary, nextMode, summaryInput, summaryKey, WorkQueue, type ToolSnapshot } from "../src/summary.ts";
+import { configuredModel, parseSettings } from "../src/settings.ts";
+import { cleanSummary, nextMode, summaryInput, summaryKey, WorkQueue, type ToolSnapshot } from "../src/capabilities/tool-summary/summary.ts";
 
 const tool: ToolSnapshot = { toolCallId: "a", toolName: "bash", args: { command: "ls" }, result: { content: [{ type: "text", text: "file.ts" }] } };
 
-test("settings merge and validate independently of agent settings", () => {
-  assert.equal(parseSettings({}, {}), undefined);
-  assert.deepEqual(parseSettings({ defaultModel: "big", lightweightTasks: { provider: "p", model: "small", thinkingLevel: "high" } },
-    { lightweightTasks: { thinkingLevel: "off" } }), { provider: "p", model: "small", thinkingLevel: "off" });
-  assert.equal(parseSettings({ lightweightTasks: { provider: "p", model: "m" } }, {})?.thinkingLevel, "off");
-  for (const config of [null, [], { model: "m" }, { provider: "p", model: "m", thinkingLevel: "typo" }]) {
-    assert.throws(() => parseSettings({ lightweightTasks: config }, {}));
+test("null defaults and explicit off are distinct; project null suppresses global config", () => {
+  assert.deepEqual(parseSettings({}, {}), { provider: null, model: null, thinkingLevel: null, capabilities: {} });
+  const global = { lightweightLlm: { provider: "p", model: "small", thinkingLevel: "high", capabilities: { toolSummary: false, future: false } } };
+  const merged = parseSettings(global, { lightweightLlm: { thinkingLevel: "off", capabilities: { toolSummary: true } } });
+  assert.deepEqual(merged, { provider: "p", model: "small", thinkingLevel: "off", capabilities: { toolSummary: true, future: false } });
+  assert.ok(configuredModel(merged));
+  for (const field of ["provider", "model", "thinkingLevel"]) {
+    assert.equal(configuredModel(parseSettings(global, { lightweightLlm: { [field]: null } })), undefined);
   }
+  assert.equal(parseSettings({ lightweightLlm: { provider: "p", model: "m" } }, {}).thinkingLevel, null);
+  assert.equal(configuredModel(parseSettings({}, {})), undefined);
+  for (const config of [null, [], { model: "" }, { thinkingLevel: "typo" }, { capabilities: null }, { capabilities: { toolSummary: "false" } }]) {
+    assert.throws(() => parseSettings({ lightweightLlm: config }, {}));
+  }
+});
+
+test("legacy settings are readable without reviving the implicit off default", () => {
+  assert.equal(parseSettings({ lightweightTasks: { provider: "p", model: "m" } }, {}).thinkingLevel, null);
+  assert.equal(parseSettings({ lightweightTasks: { model: "old" }, lightweightLlm: { model: null } }, {}).model, null);
 });
 
 test("three modes cycle in the requested order", () => {

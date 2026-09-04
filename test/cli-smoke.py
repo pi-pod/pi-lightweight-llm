@@ -40,6 +40,8 @@ with tempfile.TemporaryDirectory() as directory:
     session = Path(directory) / "fixtures" / "session.jsonl"
     session.parent.mkdir()
     session.write_text("\n".join(encode(record) for record in records) + "\n")
+    (Path(directory) / "settings.json").write_text(encode({"lightweightLlm": {
+        "provider": "test", "model": "test", "thinkingLevel": "off"}}))
     process = subprocess.Popen(["pi", "--offline", "--session", str(session), "-e", entry],
                                stdin=slave, stdout=slave, stderr=slave, env=env)
     os.close(slave)

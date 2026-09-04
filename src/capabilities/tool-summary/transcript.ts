@@ -9,7 +9,7 @@ interface RowInternals extends ToolSnapshot {
   ui: { requestRender(force?: boolean): void };
   invalidate(): void;
 }
-const owner = Symbol.for("pi-lightweight-tasks.transcript-owner");
+const owner = Symbol.for("pi-lightweight-llm.transcript-owner");
 
 export function installTranscript(
   mode: () => TranscriptMode,

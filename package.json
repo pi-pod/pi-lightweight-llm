@@ -1,8 +1,9 @@
 {
-  "name": "pi-lightweight-tasks",
+  "name": "pi-lightweight-llm",
   "version": "0.1.0",
   "type": "module",
-  "description": "A shared lightweight model and three-mode tool transcript for pi",
+  "description": "Modular, individually configurable lightweight LLM capabilities for pi",
+  "repository": { "type": "git", "url": "https://github.com/pi-pod/pi-lightweight-llm.git" },
   "keywords": ["pi-package"],
   "files": ["src", "README.md"],
   "pi": { "extensions": ["./src/index.ts"] },
