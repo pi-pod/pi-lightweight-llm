@@ -33,9 +33,13 @@ test("real pi rows retain native modes, replace completed built-in/custom rows, 
       for (const width of [20, 80]) {
         const original = native.call(row, width);
         const lines = row.render(width);
-        assert.deepEqual(lines.slice(0, original.length), original);
-        const indicator = lines.slice(original.length).join("\n");
+        assert.deepEqual(lines.slice(0, original.length - 1), original.slice(0, -1));
+        assert.equal(lines.at(-1), original.at(-1)); // Preserve native bottom padding.
+        const indicatorLines = lines.slice(original.length - 1, -1);
+        const indicator = indicatorLines.join("\n");
         assert.ok(indicator.includes(theme.getFgAnsi("muted")));
+        assert.ok(indicatorLines.every(line => line.includes(theme.getBgAnsi("toolSuccessBg"))));
+        assert.ok(indicatorLines.every(line => visibleWidth(line) === width));
         assert.ok(lines.every(line => visibleWidth(line) <= width));
         if (width === 80) assert.ok(indicator.includes("LLM Summary Processing..."));
       }

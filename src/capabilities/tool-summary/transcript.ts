@@ -1,11 +1,14 @@
 import { ToolExecutionComponent, type Theme } from "@earendil-works/pi-coding-agent";
-import { Box, Text } from "@earendil-works/pi-tui";
+import { Box, Text, type Component } from "@earendil-works/pi-tui";
 import { cleanSummary, type ToolSnapshot, type TranscriptMode } from "./summary.ts";
 
 // Compatibility boundary for pi 0.84.4. Pi exposes the component, but not a
 // transcript-wide renderer hook. No tools, result contents, or context are changed.
 interface RowInternals extends ToolSnapshot {
   isPartial: boolean;
+  children: Component[];
+  contentBox: Box;
+  contentText: Text;
   ui: { requestRender(force?: boolean): void };
   invalidate(): void;
 }
@@ -37,9 +40,19 @@ export function installTranscript(
     // Keep native output visible while background work is queued or running.
     if (text === undefined) {
       const lines = original.call(this, width);
-      if (!pending(row)) return lines;
-      const indicator = new Text(getTheme().fg("muted", "LLM Summary Processing..."), 1, 0);
-      return [...lines, ...indicator.render(width)];
+      if (!pending(row) || lines.length === 0) return lines;
+      // Locate the native shell, not the end of the row (images can follow it).
+      // Self-rendered custom tools have no standard shell; leave those intact.
+      const shellIndex = row.children?.findIndex(child => child === row.contentBox || child === row.contentText) ?? -1;
+      if (shellIndex < 0) return lines;
+      const shellEnd = row.children.slice(0, shellIndex + 1)
+        .reduce((height, child) => height + child.render(width).length, 0);
+      if (shellEnd < 2 || shellEnd > lines.length) return lines;
+      const theme = getTheme();
+      const indicator = new Text(theme.fg("muted", "LLM Summary Processing..."), 1, 0);
+      indicator.setCustomBgFn(line => theme.bg(row.result!.isError ? "toolErrorBg" : "toolSuccessBg", line));
+      // Insert before the shell's bottom padding without mutating native render caches.
+      return [...lines.slice(0, shellEnd - 1), ...indicator.render(width), ...lines.slice(shellEnd - 1)];
     }
     const theme = getTheme(); // Read on every render so theme changes apply immediately.
     const label = `${row.result.isError ? "ERROR · " : ""}${row.toolName}`;
